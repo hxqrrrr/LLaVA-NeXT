@@ -17,9 +17,9 @@ tokenizer, model, image_processor, max_length = load_pretrained_model(
     pretrained, 
     None, 
     model_name, 
-    device_map=device_map,
-    offload_folder=offload_folder
-) # Add any other thing you want to pass in llava_model_args
+    device_map=None
+)
+model = model.to(device='cuda', dtype=torch.float16)
 
 model.eval()
 model.tie_weights()
