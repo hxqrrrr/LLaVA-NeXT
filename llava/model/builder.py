@@ -22,9 +22,15 @@ import torch
 from llava.model import *
 from llava.constants import DEFAULT_IMAGE_PATCH_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from llava.utils import rank0_print
+from llava.model.language_model.llava_llama import LlavaLlamaForCausalLM
 
 
 def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, load_4bit=False, device_map="auto", torch_dtype="float16",attn_implementation="flash_attention_2", customized_config=None, overwrite_config=None, **kwargs):
+    is_quantized = load_8bit or load_4bit or kwargs.get('quantization_config') is not None
+    
+    if is_quantized:
+        kwargs["device_map"] = "auto"
+    
     kwargs["device_map"] = device_map
 
     if load_8bit:
@@ -301,5 +307,12 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         context_len = model.config.tokenizer_model_max_length
     else:
         context_len = 2048
+
+    # 检查是否使用量化配置
+    is_quantized = kwargs.get('quantization_config', None) is not None
+    
+    # 只在非量化模型时移动到GPU
+    if not is_quantized and torch.cuda.is_available():
+        model = model.to(device='cuda', dtype=torch.float16)
 
     return tokenizer, model, image_processor, context_len
